@@ -1,0 +1,22 @@
+
+
+ticket_title: DevOps.env Failed {{ application_name }} deployment of release {{ bamboo_release_name }} to environment {{ environment_name }}
+ticket_description: "Deployment of release {{ bamboo_release_name}} to environment {{ environment_name }} failed. Please verify the logs of application and the bamboo release log: {{ bamboo_release_url }}"
+# generated automatically - current date plus 2 days
+ticket_due_date: "{{ '%Y-%m-%d' | strftime( ( ansible_date_time.epoch | int ) + ( 86400 * 2 )  ) }}"
+# below can be obtained from bamboo - bamboo.deploy.release
+bamboo_release_name: release
+# below can be obtained from bamboo  - bamboo.deploy.environment
+environment_name: guru_env
+# below can be obtained from bamboo  - bamboo.resultsUrl
+bamboo_release_url: https://bamboo-url.ru
+# Application name which will be added into the description
+application_name: default_app
+#username and password to interact with jira
+jira_username: user
+jira_password: password
+# url to jira and to jira api. jira_url is used in debug massage to present the link to newly created jira task
+jira_url: https://jira-url.ru
+jira_url_api: "{{ jira_url }}/rest/api/2"
+# name of the template file which should be send to jira over API
+file_name: jira_response_your_app.json

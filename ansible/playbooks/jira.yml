@@ -1,0 +1,23 @@
+---
+- name: Updating ticket on Jira (testing)
+  hosts: 127.0.0.1
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Create an issue
+      jira:
+        uri: "{{ jira_url }}"
+        username: "{{ jira_user }}"
+        password: "{{ jira_pass }}"
+        project: DEVOPS
+        operation: create
+        summary: Failed with deploy "{{lookup('env','bamboo_deploy_release')}}"
+        description: Failed Deploy your_app "{{lookup('env','bamboo_deploy_release')}}"  link deploy "{{lookup('env','bamboo.resultsUrl')}}"
+        issuetype: "DevOps"
+        assignee: "{{lookup('env','bamboo_ManualBuildTriggerReason_userName') or jira_user}}"
+        fields:
+          duedate: "{{ lookup('pipe','date +%Y-%m-%d') }}"
+          customfield_14204: {"value": "Env"}
+          customfield_14205: {"value": "DevOps"}
+          customfield_13903: {"name": "user"}
+      register: issue

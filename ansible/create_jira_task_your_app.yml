@@ -1,0 +1,17 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+  any_errors_fatal: true
+  serial: 10
+
+  tasks:
+    - import_role: 
+        name: create_jira
+      when: call_jira_creation|bool
+  vars:
+    bamboo_release_name: "{{lookup('env','bamboo_deploy_release')}}"
+    environment_name: "{{lookup('env','bamboo_deploy_environment')}}"
+    bamboo_release_url: "{{lookup('env','bamboo_resultsUrl')}}"
+    jira_username: "{{lookup('env','bamboo_your_app_devops_user')}}"
+    jira_password: "{{lookup('env','bamboo_your_app_devops_password')}}"
+    call_jira_creation: "{{lookup('env','call_jira_creation') or 'True'}}"

@@ -1,0 +1,92 @@
+---
+- name: Create Jira response to check if task with same title already exists
+  template:
+      src: templates/jira_find_by_title.json.j2
+      dest: "jira_find_by_title.json"
+  delegate_to: localhost
+
+- name: Search a JIRA issue based on title
+  uri:
+    url: '{{ jira_url_api }}/search'
+    user: "{{ jira_username }}"
+    password: "{{ jira_password }}"
+    method: POST
+    body: "{{ lookup('file','jira_find_by_title.json') }}"
+    force_basic_auth: yes
+    status_code: 200
+    body_format: json
+    validate_certs: false
+  register: jira_exists
+  delegate_to: localhost
+
+- name: Tasks to do if Jira already exists
+  block:
+  - name: Notify if the ticket exists
+    debug:
+      msg: "[JIRA-TICKET] ticket for such environment and release already exists. Ticket number is {{ jira_exists.json.issues[0].key }} . Commenting existing task. [JIRA-TICKET]"
+
+  - name: Put a comment to existing Jira task with link to bamboo log
+    uri:
+      url: "{{ jira_url_api }}/issue/{{ jira_exists.json.issues[0].key }}/comment"
+      user: "{{ jira_username }}"
+      password: "{{ jira_password }}"
+      method: POST
+      body: '{"body": "Another deployment failed. Link to logs: {{ bamboo_release_url }}" }'
+      force_basic_auth: yes
+      status_code: 201
+      body_format: json
+      validate_certs: false
+    register: jira_ticket
+    delegate_to: localhost
+  when: jira_exists.json.total != 0
+  ignore_errors: true
+
+- name: Tasks to do if Jira doesn't exists
+  block:
+  - name: create jira response based on variables
+    template:
+        src: templates/{{ file_name }}.j2
+        dest: "{{ file_name }}"
+    delegate_to: localhost
+
+  - name: Create a JIRA issue
+    uri:
+      url: "{{ jira_url_api }}/issue"
+      user: "{{ jira_username }}"
+      password: "{{ jira_password }}"
+      method: POST
+      body: "{{ lookup('file','{{ file_name }}') }}"
+      force_basic_auth: yes
+      status_code: 201
+      body_format: json
+      validate_certs: false
+    register: jira_ticket
+    delegate_to: localhost
+
+  - name: pause
+    pause:
+      seconds: 10
+
+  - name: Add watchers to JIRA issue
+    uri:
+      url: "{{ jira_url_api }}/issue/{{ jira_ticket.json.key }}/watchers"
+      user: "{{ jira_username }}"
+      password: "{{jira_password}}"
+      method: POST
+      body: '"{{ item }}"'
+      force_basic_auth: yes
+      status_code: 204
+      headers:
+        Accept: "application/json"
+        Content-Type: "application/json"
+      body_format: json
+      validate_certs: false
+    with_items:
+      - devops
+      - user
+    register: jira_watchers
+    delegate_to: localhost
+
+  - debug:
+      msg: '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! [JIRA-TICKET] [INFO] Jira ticket number is {{ jira_ticket.json.key }} link {{ jira_url }}/browse/{{ jira_ticket.json.key }} [INFO] [JIRA-TICKET]  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+  when: jira_exists.json.total == 0
